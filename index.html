@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Wine Shop Daily Stock</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f4f6;
+text-align:center;
+}
+
+h1{
+color:#2c3e50;
+}
+
+table{
+border-collapse:collapse;
+margin:auto;
+width:95%;
+background:white;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:6px;
+}
+
+th{
+background:#34495e;
+color:white;
+}
+
+input{
+width:70px;
+text-align:center;
+}
+
+button{
+padding:10px 18px;
+margin:8px;
+border:none;
+background:#27ae60;
+color:white;
+cursor:pointer;
+}
+
+.summary input{
+width:120px;
+}
+
+</style>
+
+<script>
+
+let brands=[
+{name:"Sula Rose",type:"Q",rate:1120},
+{name:"Sula Chenin Blanc",type:"Q",rate:1120},
+{name:"Sula Zinfandel",type:"Q",rate:1060},
+{name:"Fratelli Franc",type:"Q",rate:1260},
+{name:"Fratelli Shiraz",type:"Q",rate:1120},
+{name:"Fratelli Shiraz",type:"P",rate:560},
+{name:"Fratelli Shiraz",type:"N",rate:3020},
+{name:"Paul John",type:"Q",rate:7030},
+{name:"Glenfiddich",type:"Q",rate:5870},
+{name:"Monkey Shoulder",type:"Q",rate:5050},
+{name:"Jagermeister",type:"Q",rate:3870},
+{name:"Fireball",type:"Q",rate:1690},
+{name:"Magic Moments",type:"Q",rate:1240},
+{name:"Ketel One Vodka",type:"Q",rate:2820},
+{name:"Grey Goose",type:"Q",rate:4140},
+{name:"John Barr",type:"Q",rate:2150},
+{name:"Baileys",type:"Q",rate:2600},
+{name:"Gin Sin",type:"Q",rate:1650},
+{name:"Jose Cuervo",type:"Q",rate:3100},
+{name:"Antiquity Blue",type:"Q",rate:1720},
+{name:"VAT 69",type:"Q",rate:1400},
+{name:"Dewars Smooth",type:"Q",rate:1800},
+{name:"Jack Daniels",type:"Q",rate:4200}
+];
+
+function init(){
+
+let table=document.getElementById("stockTable");
+
+brands.forEach((b,i)=>{
+
+let r=i+1;
+
+let row=table.insertRow();
+
+row.innerHTML=
+`
+<td>${b.name}</td>
+<td>${b.type}</td>
+<td><input id="open${r}" readonly></td>
+<td><input id="rec${r}" oninput="calc(${r})"></td>
+<td id="total${r}"></td>
+<td><input id="cs${r}" oninput="calc(${r})"></td>
+<td id="sales${r}"></td>
+<td><input id="rate${r}" value="${b.rate}" readonly></td>
+<td id="amount${r}"></td>
+`;
+
+});
+
+setToday();
+
+}
+
+function setToday(){
+
+let d=new Date().toISOString().split('T')[0];
+document.getElementById("date").value=d;
+loadDay();
+
+}
+
+function calc(r){
+
+let o=parseFloat(document.getElementById("open"+r).value)||0;
+let rec=parseFloat(document.getElementById("rec"+r).value)||0;
+let cs=parseFloat(document.getElementById("cs"+r).value)||0;
+let rate=parseFloat(document.getElementById("rate"+r).value)||0;
+
+let total=o+rec;
+let sales=total-cs;
+let amount=sales*rate;
+
+document.getElementById("total"+r).innerHTML=total;
+document.getElementById("sales"+r).innerHTML=sales;
+document.getElementById("amount"+r).innerHTML=amount;
+
+calcTotalSales();
+
+}
+
+function calcTotalSales(){
+
+let total=0;
+
+brands.forEach((b,i)=>{
+
+let amt=parseFloat(document.getElementById("amount"+(i+1)).innerHTML)||0;
+total+=amt;
+
+});
+
+document.getElementById("totalsales").value=total;
+
+}
+
+function saveDay(){
+
+let date=document.getElementById("date").value;
+
+let data={};
+
+brands.forEach((b,i)=>{
+
+let r=i+1;
+
+data["rec"+r]=document.getElementById("rec"+r).value;
+data["cs"+r]=document.getElementById("cs"+r).value;
+
+});
+
+data.summary={
+ob:document.getElementById("ob").value,
+exp:document.getElementById("exp").value,
+card:document.getElementById("card").value,
+paytm:document.getElementById("paytm").value
+};
+
+localStorage.setItem("stock_"+date,JSON.stringify(data));
+
+alert("Saved for "+date);
+
+}
+
+function loadDay(){
+
+clearInputs();
+
+let date=document.getElementById("date").value;
+
+let saved=localStorage.getItem("stock_"+date);
+
+if(saved){
+
+let data=JSON.parse(saved);
+
+brands.forEach((b,i)=>{
+
+let r=i+1;
+
+document.getElementById("rec"+r).value=data["rec"+r]||"";
+document.getElementById("cs"+r).value=data["cs"+r]||"";
+
+});
+
+if(data.summary){
+
+document.getElementById("ob").value=data.summary.ob||"";
+document.getElementById("exp").value=data.summary.exp||"";
+document.getElementById("card").value=data.summary.card||"";
+document.getElementById("paytm").value=data.summary.paytm||"";
+
+}
+
+}
+
+loadOpeningFromPrevious();
+
+brands.forEach((b,i)=>calc(i+1));
+
+}
+
+function loadOpeningFromPrevious(){
+
+let d=new Date(document.getElementById("date").value);
+
+d.setDate(d.getDate()-1);
+
+let y=d.toISOString().split('T')[0];
+
+let prev=localStorage.getItem("stock_"+y);
+
+if(prev){
+
+let data=JSON.parse(prev);
+
+brands.forEach((b,i)=>{
+
+let r=i+1;
+
+document.getElementById("open"+r).value=data["cs"+r]||0;
+
+});
+
+}
+
+}
+
+function clearInputs(){
+
+brands.forEach((b,i)=>{
+
+let r=i+1;
+
+document.getElementById("rec"+r).value="";
+document.getElementById("cs"+r).value="";
+document.getElementById("total"+r).innerHTML="";
+document.getElementById("sales"+r).innerHTML="";
+document.getElementById("amount"+r).innerHTML="";
+
+});
+
+}
+
+function printReport(){
+
+window.print();
+
+}
+
+</script>
+
+</head>
+
+<body onload="init()">
+
+<h1>Wine Shop Daily Stock Statement</h1>
+
+Date:
+<input type="date" id="date" onchange="loadDay()">
+
+<br><br>
+
+<table>
+
+<tr>
+<th>Brand</th>
+<th>Type</th>
+<th>Opening</th>
+<th>Rec</th>
+<th>Total</th>
+<th>C/S</th>
+<th>Sales</th>
+<th>Rate</th>
+<th>Amount</th>
+</tr>
+
+<tbody id="stockTable"></tbody>
+
+</table>
+
+<br>
+
+<h3>Cash Summary</h3>
+
+<table class="summary">
+
+<tr>
+<td>Opening Balance</td>
+<td><input id="ob"></td>
+</tr>
+
+<tr>
+<td>Total Sales</td>
+<td><input id="totalsales" readonly></td>
+</tr>
+
+<tr>
+<td>Expenses</td>
+<td><input id="exp"></td>
+</tr>
+
+<tr>
+<td>Card</td>
+<td><input id="card"></td>
+</tr>
+
+<tr>
+<td>Paytm</td>
+<td><input id="paytm"></td>
+</tr>
+
+</table>
+
+<br>
+
+<button onclick="saveDay()">Save Day</button>
+<button onclick="printReport()">Print</button>
+
+</body>
+</html>
